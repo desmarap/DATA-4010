@@ -11,8 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 #packages
 ```{r eval = FALSE}
 library("lidR")
-library("rgl")
-library("data.table")
 ```
 
 #import data
