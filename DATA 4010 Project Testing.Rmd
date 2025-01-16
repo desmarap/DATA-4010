@@ -1,0 +1,106 @@
+---
+title: "Testing"
+output: html_document
+date: "2025-01-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r eval = FALSE}
+library(lidR)
+```
+
+```{r eval=FALSE}
+las <- readLAS("MSPC_cropped2.las")
+#remove duplicate
+dup_xyz <- duplicated(las@data, by = c("X", "Y", "Z"), fromLast=TRUE)
+las = las[!dup_xyz]
+```
+
+```{r eval = FALSE}
+las3 <- classify_ground(las, algorithm = pmf(ws = 5, th = 3))
+
+plot(las, color = "Classification", size = 3, bg = "white") 
+```
+
+
+#best so far
+```{r eval=FALSE}
+las1 <- classify_ground(las, algorithm = csf())
+```
+
+```{r eval=FALSE }
+plot(las1, color = "Classification", size = 3, bg = "white") 
+```
+
+```{r}
+mycsf <- csf(sloop_smooth = TRUE, class_threshold = 1, cloth_resolution = 1, time_step = 1)
+
+las2 <- classify_ground(las, mycsf)
+```
+
+```{r eval=FALSE }
+plot(las2, color = "Classification", size = 3, bg = "white") 
+```
+
+```{r eval=FALSE}
+ground <- filter_ground(las1)
+plot(ground, size = 3, bg = "white", color = "Classification")
+```
+
+```{r eval=FALSE}
+nlas <- normalize_height(las1, knnidw())
+
+```
+```{r}
+hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "Elevation")
+```
+
+
+
+```{r eval=FALSE}
+nonveg <- filter_poi(las, Classification != LASHIGHVEGETATION)
+veg <- filter_poi(las, Classification == LASHIGHVEGETATION)
+
+x <- plot(nonveg, color = "Classification", bg = "white", size = 3)
+plot(veg, add = x)
+```
+```{r eval = FALSE}
+
+las3 <- readLAS("MSPC_cropped2.las", select = "xyzr", filter = "-drop_z_below 0")
+
+dup_xyz <- duplicated(las3@data, by = c("X", "Y", "Z"), fromLast=TRUE)
+las3 = las3[!dup_xyz]
+
+```
+
+```{r}
+chm <- rasterize_canopy(las3, 0.5, pitfree(subcircle = 0.2))
+plot(las3, bg="white", size=4)
+```
+```{r}
+is.planar <- function(x, y, z, th1 = 25, th2 = 6) {
+  xyz <- cbind(x,y,z)
+  cov_m <- cov(xyz)
+  eigen_m <- eigen(cov_m)$value
+  is_planar <- eigen_m[2] > (th1*eigen_m[3]) && (th2*eigen_m[2]) > eigen_m[1]
+  return(list(planar = is_planar))
+}
+```
+
+```{r}
+M <- point_metrics(las, ~is.planar(X,Y,Z), k = 20, filter = ~Classification != LASGROUND)
+
+las4 <- add_attribute(las, FALSE, "planar")
+las4$planar[M$pointID] <- M$planar
+plot(las4, color = "planar")
+```
+
+#install_url('http://cran.r-project.org/src/contrib/Archive/lidR/lidR_4.0.2.tar.gz)
+
+
+
+
