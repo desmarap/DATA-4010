@@ -1,5 +1,5 @@
 ---
-title: "Testing"
+title: "Data 4010 Project Testing"
 output: html_document
 date: "2025-01-11"
 ---
@@ -8,53 +8,65 @@ date: "2025-01-11"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+#packages
 ```{r eval = FALSE}
-library(lidR)
+library("lidR")
+library("rgl")
+library("data.table")
 ```
 
+#import data
 ```{r eval=FALSE}
+#las file
 las <- readLAS("MSPC_cropped2.las")
 #remove duplicate
 dup_xyz <- duplicated(las@data, by = c("X", "Y", "Z"), fromLast=TRUE)
 las = las[!dup_xyz]
 ```
 
-```{r eval = FALSE}
-las3 <- classify_ground(las, algorithm = pmf(ws = 5, th = 3))
-
-plot(las, color = "Classification", size = 3, bg = "white") 
+```{r}
+#keep XYZ and RGB
+las1 <- readLAS("MSPC_cropped2.las", select= "xyznrRGB")
+#remove duplicate
+dup_xyz <- duplicated(las1@data, by = c("X", "Y", "Z"), fromLast=TRUE)
+las1 = las1[!dup_xyz]
 ```
 
+#ground classification (with different algorithms)
+```{r eval = FALSE}
+ground_classify1 <- classify_ground(las1, algorithm = pmf(ws = 5, th = 3))
 
+plot(ground_classify1, color = "Classification", size = 3, bg = "white") 
+```
 #best so far
 ```{r eval=FALSE}
-las1 <- classify_ground(las, algorithm = csf())
+ground_classify2 <- classify_ground(las, algorithm = csf())
 ```
 
 ```{r eval=FALSE }
-plot(las1, color = "Classification", size = 3, bg = "white") 
+plot(ground_classify2, color = "Classification", size = 3, bg = "white") 
 ```
 
 ```{r}
 mycsf <- csf(sloop_smooth = TRUE, class_threshold = 1, cloth_resolution = 1, time_step = 1)
 
-las2 <- classify_ground(las, mycsf)
+ground_classify3 <- classify_ground(las, mycsf)
 ```
 
 ```{r eval=FALSE }
-plot(las2, color = "Classification", size = 3, bg = "white") 
+plot(ground_classify3, color = "Classification", size = 3, bg = "white") 
 ```
 
 ```{r eval=FALSE}
-ground <- filter_ground(las1)
+ground <- filter_ground(las2)
 plot(ground, size = 3, bg = "white", color = "Classification")
 ```
 
+#normalize
 ```{r eval=FALSE}
 nlas <- normalize_height(las1, knnidw())
-
 ```
+
 ```{r}
 hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "Elevation")
 ```
@@ -62,12 +74,13 @@ hist(filter_ground(nlas)$Z, breaks = seq(-0.6, 0.6, 0.01), main = "", xlab = "El
 
 
 ```{r eval=FALSE}
-nonveg <- filter_poi(las, Classification != LASHIGHVEGETATION)
-veg <- filter_poi(las, Classification == LASHIGHVEGETATION)
+nonveg <- filter_poi(ground_classify2, Classification != LASHIGHVEGETATION)
+veg <- filter_poi(ground_classify2, Classification == LASHIGHVEGETATION)
 
 x <- plot(nonveg, color = "Classification", bg = "white", size = 3)
 plot(veg, add = x)
 ```
+
 ```{r eval = FALSE}
 
 las3 <- readLAS("MSPC_cropped2.las", select = "xyzr", filter = "-drop_z_below 0")
@@ -81,8 +94,16 @@ las3 = las3[!dup_xyz]
 chm <- rasterize_canopy(las3, 0.5, pitfree(subcircle = 0.2))
 plot(las3, bg="white", size=4)
 ```
+
+
+#roof segmentation
+
 ```{r}
-is.planar <- function(x, y, z, th1 = 25, th2 = 6) {
+metrics <-  point_metrics(las, ~list(imean = mean(Intensity)), k = 7) 
+```
+
+```{r}
+plane.metrics1 <- function(x, y, z, th1 = 25, th2 = 6) {
   xyz <- cbind(x,y,z)
   cov_m <- cov(xyz)
   eigen_m <- eigen(cov_m)$value
@@ -92,15 +113,17 @@ is.planar <- function(x, y, z, th1 = 25, th2 = 6) {
 ```
 
 ```{r}
-M <- point_metrics(las, ~is.planar(X,Y,Z), k = 20, filter = ~Classification != LASGROUND)
+M <- point_metrics(las, !plane.metrics1(X,Y,Z), k = 20, filter = ~Classification != LASGROUND)
 
 las4 <- add_attribute(las, FALSE, "planar")
 las4$planar[M$pointID] <- M$planar
 plot(las4, color = "planar")
 ```
 
-#install_url('http://cran.r-project.org/src/contrib/Archive/lidR/lidR_4.0.2.tar.gz)
+#install_url('http://cran.r-project.org/src/contrib/Archive/lidR/lidR_3.0.2.tar.gz)
 
-
+```{r}
+las$Classification[M$pointID] <- LASBUILDING
+```
 
 
