@@ -4,7 +4,6 @@ RGB_cloud_data <-readLAS(las_file1)
 
 
 RGB_cloud_data <- las_data1
-#MSPC_cloud_data<- las_data2@data
 
 library(dplyr)
 library(lidR)
@@ -25,12 +24,12 @@ tree_segments_3 <- segment_trees(RGB_normalized, watershed(chm_3))
 
 ## p2r and pitfree give almost the same result. dsmtin gives worse looking segmentation. So I will use only p2r going forward.
 
-## try segment_shapes(), segment_snags() 
+## (Lu comment) try segment_shapes(), segment_snags() 
 
-writeLAS(tree_segments, "segmented_RGB.las")
+writeLAS(tree_segments_1, "segmented_RGB.las")
 
 tree_only<- filter_poi(tree_segments, !is.na(treeID) & treeID > 0)
-writeLAS(tree_only, "trees_RGB.las")
+writeLAS(tree_only, "trees_RGB.las") # Visualize thia one in cloudcompare
 
 #Experimentation below
 
@@ -43,9 +42,6 @@ for (i in 1:length(IDs)) {
   writeLAS(tree, paste0("C:\\Users\\garoa\\Documents\\trees_nursery\\tree_", toString(i))) 
   
 }
-
-
-
 
 
 plot(tree, color="normal z")
