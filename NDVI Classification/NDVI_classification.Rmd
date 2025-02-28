@@ -1,0 +1,117 @@
+---
+title: "NVDI Classification"
+output: html_document
+date: ""
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#packages
+
+```{r eval = FALSE}
+library("lidR")
+library("ggplot2")
+library("rgl")
+library("raster") 
+```
+
+#import data
+
+```{r}
+las1 <- readLAS("MSPC_cropped.las")
+#remove duplicate
+dup_xyz <- duplicated(las1@data, by = c("X", "Y", "Z"))
+las1 = las1[!dup_xyz,]
+```
+
+
+```{r}
+# Compute NDVI
+las1@data$NDVI <- with(las1@data, (NIR - R) / (NIR + R))
+
+# Handle NA values
+las1@data$NDVI[is.na(las1@data$NDVI)] <- 0
+
+NDVI_threshold = 0.2 #0.5
+```
+
+#Classify into vegetation and non-vegetation 
+```{r}
+# Classify points
+las1@data$Classification <- as.integer(with(las1@data, ifelse(
+  NDVI > NDVI_threshold,  # Vegetation
+  5,
+  2  # Non-vegetation
+)))
+```
+
+```{r}
+ggplot(las1@data, aes(X, Y, color = NDVI)) +
+  geom_point(alpha = 0.5) +
+  scale_color_gradient(low = "red", high = "green") +
+  labs(title = "NDVI Classification of Vegetation and Non-Vegetation") +
+  theme_minimal()
+```
+
+```{r}
+classification_colors <- c(
+  "2" = "blue",       # Non-vegetation
+  "5" = "green"       # Vegetation (both trees and low plants)
+)
+
+# Plot with legend for overall classification
+plot(las1, color = "Classification", pal = classification_colors, legend = TRUE)
+```
+
+#Classification into Trees, Low-level vegetations, and other structures
+
+```{r}
+# Classify ground points and generate DTM
+las1 <- classify_ground(las1, algorithm = pmf(ws = 5, th = 0.5))
+dtm <- rasterize_terrain(las1, res = 1, algorithm = knnidw(k = 10))
+
+# Extract DTM values
+dtm_values <- extract(dtm, las1@data[, c("X", "Y")], method = 'simple')
+
+# Calculate Height Above Ground
+las1@data$HeightAboveGround <- las1@data$Z - dtm_values$Z
+# Compute Planarity
+las1@data$Planarity <- abs(las1@data[["normal x"]])
+
+# Define thresholds for classification
+tree_height_threshold <- quantile(las1@data$Z, 0.5)
+```
+
+```{r}
+# Classification using multiple metrics
+las1@data$Classification <- as.integer(with(las1@data, ifelse(
+  NDVI > NDVI_threshold & Z > tree_height_threshold,  # Trees
+  5,
+  ifelse(
+    NDVI > NDVI_threshold & Z <= tree_height_threshold,  # Other vegetation
+    15,
+    2
+  )
+)))
+```
+
+```{r}
+# Define Classification Colors & Labels
+classification_colors <- c(
+  "2"  = "blue",       # Other
+  "5"  = "green",      # Trees
+  "15" = "lightgreen"  # Low vegetation
+)
+
+classification_labels <- c(
+  "2"  = "Other",
+  "5"  = "Trees",
+  "15" = "Low Vegetation"
+)
+
+# Plot with Legend
+plot(las1, color = "Classification", pal = classification_colors, legend = TRUE)
+```
+
