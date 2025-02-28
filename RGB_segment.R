@@ -28,7 +28,7 @@ tree_segments_3 <- segment_trees(RGB_normalized, watershed(chm_3))
 
 writeLAS(tree_segments_1, "segmented_RGB.las")
 
-tree_only<- filter_poi(tree_segments, !is.na(treeID) & treeID > 0)
+tree_only<- filter_poi(tree_segments_1, !is.na(treeID) & treeID > 0)
 writeLAS(tree_only, "trees_RGB.las") # Visualize thia one in cloudcompare
 
 #Experimentation below
