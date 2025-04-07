@@ -136,7 +136,7 @@ labelled[, "area"] <- labelled[, "area"]/labelled[, "unique"]
 
 labelled <- na.omit(labelled)
 
-# Find the tree species that do not have many data points, in this case,e less than 10
+# Find the tree species that do not have many data points, in this case, less than 10
 species_clean <- labelled %>% group_by(Species) %>% summarise(count = n())
 species_clean <- species_clean[species_clean$count < 10, ]
 species_clean <- st_drop_geometry(species_clean)
@@ -146,7 +146,7 @@ species_clean <- species_clean %>% select(-count)
 labelled <- labelled %>%
   filter(!labelled$Species %in% species_clean$Species)
 
-# We can change the dataset to remove any feature to check the drop ion accuracy
+# We can change the dataset to remove any feature to check the drop in accuracy
 labelled <- labelled %>% select(-c(treeID, unique))
 ```
 
