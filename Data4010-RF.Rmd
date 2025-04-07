@@ -1,5 +1,5 @@
 ---
-title: "4010-RF"
+Title: "4010-RF"
 author: "Garik Avagyan, Ha, Uyen Tran, Patrick Desmarais"
 date: "2025-04-01"
 output: html_document
@@ -61,8 +61,8 @@ plot(tree_polygons)
 
 ```
 
-This step is removing all the folliage that is not trees we have a roundness metric added
-And an area metric to try and cut the objects that are to big to be trees and also the small
+This step is removing all the foliage that is not trees We have a roundness metric added
+And an area metric to try and cut the objects that are too big to be trees and also the small
 objects
 
 ```{r}
@@ -96,12 +96,12 @@ Merge the private tree coordinates with the polygons created in the last section
 This will label the data. 
 
 Then we clean it even more by removing all the NA values and removing all the species that
-have less than 10 trees in the data set since it will be causing more error
+have less than 10 trees in the data set since it will cause more error
 
 ```{r}
 tree_coords <- read.dbf("C:/4010/UofM_tree_points2024_UTM14N.dbf")
 
-# Changing the coordinate system for the two datasets making them match
+# Changing the coordinate system for the two datasets, making them match
 tree_sf <- st_as_sf(tree_coords, coords = c("POINT_X", "POINT_Y"), crs = 4326)
 tree_sf <- st_transform(tree_sf, crs = 26914)
 tree_sf <- tree_sf[ , c("Species", "geometry")]
@@ -109,7 +109,7 @@ roundness_sf <- st_as_sf(roundness, crs = 26914)
 
 labelled <- st_join(roundness_sf, tree_sf)
 
-# Checking if the polygons only has one species of tree
+# Checking if the polygons only have one species of tree
 clean_labelled <- labelled %>% 
   group_by(treeID) %>%
   summarise(
@@ -131,12 +131,12 @@ for(i in clean_labelled$treeID)
 
 labelled <- labelled[labelled$unique > 0 ,]
 
-# adjusting the area if their is more than one tree of the same species in the polygon
+# adjusting the area if there is more than one tree of the same species in the polygon
 labelled[, "area"] <- labelled[, "area"]/labelled[, "unique"]
 
 labelled <- na.omit(labelled)
 
-# Find the tree species that do not have many data points in this case less than 10
+# Find the tree species that do not have many data points, in this case,e less than 10
 species_clean <- labelled %>% group_by(Species) %>% summarise(count = n())
 species_clean <- species_clean[species_clean$count < 10, ]
 species_clean <- st_drop_geometry(species_clean)
@@ -146,6 +146,7 @@ species_clean <- species_clean %>% select(-count)
 labelled <- labelled %>%
   filter(!labelled$Species %in% species_clean$Species)
 
+# We can change the dataset to remove any feature to check the drop ion accuracy
 labelled <- labelled %>% select(-c(treeID, unique))
 ```
 
